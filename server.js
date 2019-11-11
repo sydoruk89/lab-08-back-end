@@ -7,15 +7,20 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const superagent = require('superagent');
+const pg = require('pg');
 
 //Application Setup
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 3000;
 const app = express();
 app.use(cors());
 
+// Database Connection Setup
+const client = new pg.Client(process.env.DATABASE_URL);
+client.on('error', err => {throw err;});
+
 
 //API routes
-app.get('/location', locationHandler);
+app.get('/location', getLocation);
 app.get('/weather', weatherHandler);
 app.get('/trails', getTrails);
 
@@ -24,14 +29,15 @@ app.get('*', (request, response) => {
   response.status(404).send('This route does not exist');
 });
 
-// Location handler
-function locationHandler(request, response) {
+// get info from a user
+Location.fetchLocation = (request, response) => {
   try {
     const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${request.query.data}&key=${process.env.GEOCODE_API_KEY}`;
     superagent.get(url)
       .then(data => {
         const geoData = data.body;
         const location = (new Location(request.query.data, geoData));
+        location.save();
         response.status(200).send(location);
       });
   }
@@ -39,6 +45,28 @@ function locationHandler(request, response) {
     //some function or error message
     errorHandler('So sorry, something went wrong', request, response);
   }
+};
+
+Location.prototype.save = function() {
+  const SQL = 'INSERT INTO locations (search_query, formatted_query, latitude, longitude) VALUES($1, $2, $3, $4) RETURNING *';
+  let values = Object.values(this);
+  return client.query(SQL, values);
+};
+
+// get data from database if exists else get from a user
+function getLocation(request, response) {
+  const SQL = `SELECT * FROM locations WHERE search_query='${request.query.data}'`;
+  client.query(SQL)
+    .then( result => {
+      if (result.rowCount > 0) {
+        console.log('Location data from SQL');
+        response.send(result.rows[0]);
+      }
+      else {
+        Location.fetchLocation(request, response);
+      }
+    })
+    .catch( error => errorHandler(error));
 }
 
 //API routes
@@ -107,6 +135,13 @@ function Trails(trail){
   this.condition_date = trail.conditionDate.slice(0, 10);
   this.condition_time = trail.conditionDate.slice(11);
 }
-// //Ensure the server is listening for requests
-// // THIS MUST BE AT THE BOTTOM OF THE FILE!!!!
-app.listen(PORT, () => console.log(`The server is up, listening on ${PORT}`));
+// Connect to DB and Start the Web Server
+client.connect()
+  .then( () => {
+    app.listen(PORT, () => {
+      console.log('Server up on', PORT);
+    });
+  })
+  .catch(err => {
+    throw `PG Startup Error: ${err.message}`;
+  });
