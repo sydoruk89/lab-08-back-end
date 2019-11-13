@@ -37,20 +37,18 @@ Location.fetchLocation = (request, response) => {
       .then(data => {
         const geoData = data.body;
         const location = (new Location(request.query.data, geoData));
-        location.save();
-        response.status(200).send(location);
+        let SQL = 'INSERT INTO locations (search_query, formatted_query, latitude, longitude) VALUES($1, $2, $3, $4) RETURNING *';
+        let values = [request.query.data, location.formatted_query, location.latitude, location.longitude];
+        return client.query(SQL, values);
+      })
+      .then (results => {
+        response.status(200).send(results.rows[0]);
       });
   }
   catch (error) {
     //some function or error message
     errorHandler('So sorry, something went wrong', request, response);
   }
-};
-
-Location.prototype.save = function() {
-  const SQL = 'INSERT INTO locations (search_query, formatted_query, latitude, longitude) VALUES($1, $2, $3, $4) RETURNING *';
-  let values = Object.values(this);
-  return client.query(SQL, values);
 };
 
 // get data from database if exists else get from a user
@@ -60,7 +58,7 @@ function getLocation(request, response) {
     .then( result => {
       if (result.rowCount > 0) {
         console.log('Location data from SQL');
-        response.send(result.rows[0]);
+        response.status(200).send(result.rows[0]);
       }
       else {
         Location.fetchLocation(request, response);
