@@ -2,7 +2,7 @@
 Node, npm and Express
 # Project Name
 
-**Author**: Roman Sydoruk, Tammy Ip
+**Author**: Roman Sydoruk, Ehsan Ghafari
 **Version**: 1.0.0 (increment the patch/fix version number if you make more commits past your first submission)
 
 ## Overview
@@ -31,22 +31,42 @@ We use JavaScript, the Express library, and Superagent.
 <!-- Give credit (and a link) to other people or resources that helped you build this application. -->
 -->
 
-Number and name of feature: repo setup
+Number and name of feature: __Repo setup______________________________
 
-Estimate of time needed to complete: 30 mins
+Estimate of time needed to complete: _30 mins____
 
-Start time: __6:30 pm___
+Start time: __12;30 pm___
 
-Finish time: _7:00 pm____
+Finish time: _1:00 pm____
 
-Actual time needed to complete: _30 mins___
+Actual time needed to complete: _30 mins____
 
-Number and name of feature: Trail feature setup
+Number and name of feature: _______Feature2_________________________
 
-Estimate of time needed to complete: 2 hours
+Estimate of time needed to complete: __1 hour___
 
-Start time: __6:30 pm___
+Start time: ___1pm__
 
-Finish time: _9:30 pm____
+Finish time: _2pm____
 
-Actual time needed to complete: _3 hours___
+Actual time needed to complete: __1 hour___
+
+Number and name of feature: ______3__________________________
+
+Estimate of time needed to complete: ___1 hour__
+
+Start time: _2pm____
+
+Finish time: ___3pm__
+
+Actual time needed to complete: _1 hour____
+
+Number and name of feature: _____________4___________________
+
+Estimate of time needed to complete: __1 hour___
+
+Start time: __5:30 pm___
+
+Finish time: ___7:30pm__
+
+Actual time needed to complete: ___2 hours__
