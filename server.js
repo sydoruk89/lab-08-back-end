@@ -10,7 +10,7 @@ const superagent = require('superagent');
 const pg = require('pg');
 
 //Application Setup
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT;
 const app = express();
 app.use(cors());
 
@@ -29,43 +29,41 @@ app.get('*', (request, response) => {
   response.status(404).send('This route does not exist');
 });
 
-// get info from a user
-Location.fetchLocation = (request, response) => {
-  try {
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${request.query.data}&key=${process.env.GEOCODE_API_KEY}`;
-    superagent.get(url)
-      .then(data => {
-        const geoData = data.body;
-        const location = (new Location(request.query.data, geoData));
-        let SQL = 'INSERT INTO locations (search_query, formatted_query, latitude, longitude) VALUES($1, $2, $3, $4) RETURNING *';
-        let values = [request.query.data, location.formatted_query, location.latitude, location.longitude];
-        return client.query(SQL, values);
-      })
-      .then (results => {
-        response.status(200).send(results.rows[0]);
-      });
-  }
-  catch (error) {
-    //some function or error message
-    errorHandler('So sorry, something went wrong', request, response);
-  }
-};
 
-// get data from database if exists else get from a user
 function getLocation(request, response) {
-  const SQL = `SELECT * FROM locations WHERE search_query='${request.query.data}'`;
+  const SQL = 'SELECT * FROM locations WHERE search_query= $1';
   client.query(SQL)
     .then( result => {
       if (result.rowCount > 0) {
         console.log('Location data from SQL');
         response.status(200).send(result.rows[0]);
-      }
-      else {
-        Location.fetchLocation(request, response);
+      } else {
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${request.query.data}&key=${process.env.GEOCODE_API_KEY}`;
+        superagent.get(url)
+          .then(data => {
+            console.log('From API');
+            if (!data.body.results.length) { throw 'No Data'; }
+            else {
+              const geoData = data.body;
+              const location = (new Location(request.query.data, geoData));
+              let newSQL = 'INSERT INTO locations (search_query, formatted_query, latitude, longitude) VALUES($1, $2, $3, $4) RETURNING *';
+              let values = [location.search_query, location.formatted_query, location.latitude, location.longitude];
+              return client.query(newSQL, values)
+                .then(results => {
+                  response.status(200).send(results.rows[0]);
+                })
+                .catch(() => {
+                  errorHandler('Something went wrong', request, response);
+                });
+            }
+          });
       }
     })
-    .catch( error => errorHandler(error));
+    .catch(() => {
+      errorHandler('Something went wrong', request, response);
+    });
 }
+
 
 //API routes
 function weatherHandler(request, response) {
