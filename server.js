@@ -36,7 +36,7 @@ app.get('*', (request, response) => {
 
 
 function getLocation(query) {
-  const SQL = `SELECT * FROM locations WHERE search_query=$1`;
+  const SQL = 'SELECT * FROM locations WHERE search_query=$1';
   const values = [query];
   return client.query(SQL,values)
     .then(results => {
@@ -47,29 +47,18 @@ function getLocation(query) {
         const _URL = `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${process.env.GEOCODE_API_KEY}`;
         return superagent.get(_URL)
           .then(data => {
-            console.log('From API');
-            if (!data.body.results.length) { throw 'No Data'; }
-            else {
-              let location = new Location(query, data.body.results[0]);
-              let newSQL = `
-              INSERT INTO locations
-                (search_query,formatted_query,latitude,longitude)
-                VALUES($1,$2,$3,$4)
-                RETURNING id
-            `;
-              let newValues = Object.values(location);
-              return client.query(newSQL, newValues)
-                .then(results => {
-                  location.id = results.rows[0].id;
-                  return location;
-                })
-                .catch(console.error);
-            }
+            const location = (new Location(query, data.body));
+            let SQL = 'INSERT INTO locations (search_query, formatted_query, latitude, longitude) VALUES($1, $2, $3, $4) RETURNING *';
+            let values = [query, location.formatted_query, location.latitude, location.longitude];
+            return client.query(SQL, values);
+          })
+          .then (results => {
+            return results.rows[0];
           });
       }
-    })
-    .catch(console.error);
+    });
 }
+
 
 
 //API routes
