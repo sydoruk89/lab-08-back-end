@@ -43,7 +43,7 @@ function getLocation(query) {
         console.log('From SQL');
         return results.rows[0];
       } else {
-        const _URL = `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${process.env.GEOCODE_API_KEY}`
+        const _URL = `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${process.env.GEOCODE_API_KEY}`;
         return superagent.get(_URL)
           .then(data => {
             console.log('From API');
