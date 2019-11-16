@@ -20,7 +20,6 @@ client.on('error', err => {throw err;});
 
 
 //API routes
-// app.get('/location', getLocation);
 app.get('/location', (request, response) => {
   getLocation(request.query.data)
     .then(locationData => response.send(locationData))
