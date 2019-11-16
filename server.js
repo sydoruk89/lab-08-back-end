@@ -31,14 +31,16 @@ app.get('*', (request, response) => {
 
 
 function getLocation(request, response) {
+  const city = request.query.data;
   const SQL = 'SELECT * FROM locations WHERE search_query= $1';
-  client.query(SQL)
+  let val = [city];
+  client.query(SQL, val)
     .then( result => {
       if (result.rowCount > 0) {
         console.log('Location data from SQL');
         response.status(200).send(result.rows[0]);
       } else {
-        const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${request.query.data}&key=${process.env.GEOCODE_API_KEY}`;
+        const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${city}&key=${process.env.GEOCODE_API_KEY}`;
         superagent.get(url)
           .then(data => {
             console.log('From API');
