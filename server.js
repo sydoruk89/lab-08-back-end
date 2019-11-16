@@ -16,12 +16,16 @@ app.use(cors());
 
 // Database Connection Setup
 const client = new pg.Client(process.env.DATABASE_URL);
-client.connect();
 client.on('error', err => {throw err;});
 
 
 //API routes
-app.get('/location', getLocation);
+// app.get('/location', getLocation);
+app.get('/location', (request, response) => {
+  getLocation(request.query.data)
+    .then(locationData => response.send(locationData))
+    .catch(error => errorHandler(error, response));
+});
 app.get('/weather', weatherHandler);
 app.get('/trails', getTrails);
 
@@ -31,55 +35,42 @@ app.get('*', (request, response) => {
 });
 
 
-Location.fetchLocation = (req, res) => {
-  console.log('got data from API from location');
-  const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${req.query.data}&key=${process.env.GEOCODE_API_KEY}`;
-  let location;
-  return superagent.get(geocodeUrl)
-    .then(data => {
-      location = new Location(req.query.data, JSON.parse(data.text));
-      location.save()
-        .then(result => {
-          location.id = result.rows[0].id;
-          return location;
-        })
-        .then(location => {
-          console.log('this is location ', location);
-          res.send(location);
-        });
-    })
-    .catch(err => {
-      console.log('fetchLocation() ', err);
-    });
-};
-
-Location.prototype.save = function() {
-  const SQL = `
-    INSERT INTO locations 
-      (search_query,formatted_query,latitude,longitude)
-      VALUES($1,$2,$3,$4)
-      RETURNING id;`;
-  let values = Object.values(this);
-  return client.query(SQL, values);
-};
-
-function getLocation(req, res) {
-
-  const SQL = `SELECT * FROM locations WHERE search_query='${req.query.data}';`;
-
-  return client.query(SQL)
-    .then( result => {
-      if (result.rowCount > 0) {
-        // console.log('this is how result look like ', result);
-        console.log('Got data from SQL from location');
-        res.send(result.rows[0]);
-      }
-      else {
-        Location.fetchLocation(req, res);
+function getLocation(query) {
+  const SQL = `SELECT * FROM locations WHERE search_query=$1`;
+  const values = [query];
+  return client.query(SQL,values)
+    .then(results => {
+      if(results.rowCount > 0) {
+        console.log('From SQL');
+        return results.rows[0];
+      } else {
+        const _URL = `https://maps.googleapis.com/maps/api/geocode/json?address=${query}&key=${process.env.GEOCODE_API_KEY}`;
+        return superagent.get(_URL)
+          .then(data => {
+            console.log('From API');
+            if (!data.body.results.length) { throw 'No Data'; }
+            else {
+              let location = new Location(query, data.body.results[0]);
+              let newSQL = `
+              INSERT INTO locations
+                (search_query,formatted_query,latitude,longitude)
+                VALUES($1,$2,$3,$4)
+                RETURNING id
+            `;
+              let newValues = Object.values(location);
+              return client.query(newSQL, newValues)
+                .then(results => {
+                  location.id = results.rows[0].id;
+                  return location;
+                })
+                .catch(console.error);
+            }
+          });
       }
     })
-    .catch(err => console.log('getLocation', err));
+    .catch(console.error);
 }
+
 
 //API routes
 function weatherHandler(request, response) {
