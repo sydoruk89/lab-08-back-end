@@ -16,6 +16,7 @@ app.use(cors());
 
 // Database Connection Setup
 const client = new pg.Client(process.env.DATABASE_URL);
+client.connect();
 client.on('error', err => {throw err;});
 
 
